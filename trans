@@ -1,0 +1,135 @@
+#!/bin/bash -
+PROGNAME=trans
+
+key="${DEEPL_KEY}"
+deepl="https://api-free.deepl.com/v2/translate"
+target=EN-US
+source=fr
+stdin=0
+docopy=0
+loop=0
+debug=0
+
+usage() {
+        cat <<EOF 1>&2
+Usage: $PROGNAME [-iecd -k key] "du texte en français" 
+
+Translates the given French text to English
+
+Options:
+  -e     : The given text is in English, translate to French
+  -k key : Use this DEEPL authorization key
+  -i     : read text from standard in. Ignores command line
+  -c     : copy translated text to clipboard
+  -L     : Read continuosly from stdin. Line-by-Line.
+  -d     : Debug mode
+  -h : print this help message
+EOF
+  exit 1
+}
+
+lastText=""
+lastTrans=""
+
+doTrans() {
+  local text="$1"
+  local formality=""
+  if [ "$target" = "fr" -a "$formality_setting" = "tu" ] ; then
+     formality="-d formality=less"
+  fi
+
+  #trans=$(curl $deepl -s -d "auth_key=$key"  $formality -d text="${text}" -d target_lang=$target -d source_lang=$source | jq -C $jqf )
+  result=$(curl $deepl -s -d "auth_key=$key"  $formality -d text="${text}" -d target_lang=$target -d source_lang=$source )
+  [ $debug -eq 1 ] && jq . <<EOF
+$result
+EOF
+  lastText="${text}"
+  lastTrans=$(echo $result | jq -r .translations[0].text )
+  trans=$(echo $result | jq -C $jqf )
+  [ $docopy -eq 1 ] && echo "${trans}" | pbcopy
+
+   echo $trans
+   return 0
+}
+
+
+while getopts "icek:hdL" opt
+do
+    case $opt in
+        k) key="$OPTARG" ;;
+        e) target=fr
+           source=en ;;
+        i) stdin=1 ;;
+        c) docopy=1 ;;
+        L) loop=1 ;;
+        d) debug=1 ;;
+        h) usage ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+[ $# -lt 1 -a $stdin -eq 0 -a $loop -eq 0 ] && usage
+
+if [ $stdin -eq 1 ] ; then
+   text="$(< /dev/stdin)"
+   echo "Text ----"
+   echo $text
+   echo ---
+else
+   text="$@"
+fi
+
+if [ "$source" = en ] 
+then
+   formality_setting=tu
+else
+   formality_setting=""
+fi
+
+jqf=".translations[0].text"
+#jqf="."
+
+if [ ! -z "${text}" ] ; then
+   doTrans "$text"
+fi
+
+help() {
+    cat <<EOF
+Enter  .e to prompt English
+       .f to prompt french.
+       .F toggle french formality (tu vs vous)
+       .p paste in next sentence.
+       .d to toggle debug
+       .h for this help
+       .c copy last translation to pb
+      .q or ^d to quit.
+EOF
+}
+
+if [ $loop -eq 1 ] ; then
+    help
+    [ $source == fr ] && prompt="fr> " || prompt="eng> "
+    while read -p "${prompt}" txt
+    do
+        case "$txt" in
+            .e) source=en; target=fr; prompt="eng> " ;;
+            .f) source=fr; target=EN-US; prompt="fr> " ;;
+            .F) [ "$formality_setting" = "tu" ] && formality_setting=vous || formality_setting=tu 
+                echo Formality is now $formality_setting ;;
+            .d) [ $debug -eq 0 ] && debug=1 || debug=0 ;;
+            .h)  help ;;
+            .p) txt=$(pbpaste)
+                echo "pasted ----"
+                echo $txt
+                echo ---
+                doTrans "$txt" ;;
+            .c) echo "$lastText => $lastTrans" | pbcopy
+                echo copied. ;;
+            .q) break ;;
+            "") ;;
+            *) doTrans "$txt" ;;
+        esac
+    done
+fi
+
