@@ -110,7 +110,7 @@ EOF
 if [ $loop -eq 1 ] ; then
     help
     [ $source == fr ] && prompt="fr> " || prompt="eng> "
-    while read -p "${prompt}" txt
+    while read -e -p "${prompt}" txt
     do
         case "$txt" in
             .e) source=en; target=fr; prompt="eng> " ;;
