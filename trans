@@ -9,6 +9,11 @@ stdin=0
 docopy=0
 loop=0
 debug=0
+export HISTFILE=~/.trans_history
+export HISTSIZE=20000
+export HISTFILESIZE=100000
+export HISTTIMEFORMAT="%F %T: "
+
 
 usage() {
         cat <<EOF 1>&2
@@ -110,6 +115,7 @@ EOF
 if [ $loop -eq 1 ] ; then
     help
     [ $source == fr ] && prompt="fr> " || prompt="eng> "
+    history -r "$HISTFILE"
     while read -e -p "${prompt}" txt
     do
         case "$txt" in
@@ -128,8 +134,10 @@ if [ $loop -eq 1 ] ; then
                 echo copied. ;;
             .q) break ;;
             "") ;;
-            *) doTrans "$txt" ;;
+            *) history -s "$txt"
+               doTrans "$txt" ;;
         esac
     done
+    history -w "$HISTFILE"
 fi
 
