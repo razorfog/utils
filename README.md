@@ -27,7 +27,7 @@ Options:
   -h : print this help message
   ```
   
-  A recommended way to run the tool is with an in interactive mode, start with "-L" . This gives you an interactive look of prompt / response.
+  A recommended way to run the tool is with an in interactive mode, start with "-L" . This gives you an interactive prompt. It supports history, use "up/down-arrow" and typical command line history navigation (e.g. ^r to search).  History is saved in ~/.trans_history 
   
   Example:
   ```
