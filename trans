@@ -17,16 +17,16 @@ export HISTTIMEFORMAT="%F %T: "
 
 usage() {
         cat <<EOF 1>&2
-Usage: $PROGNAME [-iecd -k key] "du texte en français" 
+Usage: $PROGNAME [-iecd -k key] ["du texte en français"]
 
-Translates the given French text to English
+Interactive prompt for text to translate. Starts with a prompt for French.
+If text given on command line will translate that only and exit.
 
 Options:
-  -e     : The given text is in English, translate to French
+  -e     : The given text is in English, translate to French. Default if French to English.
   -k key : Use this DEEPL authorization key
-  -i     : read text from standard in. Ignores command line
-  -c     : copy translated text to clipboard
-  -L     : Read continuosly from stdin. Line-by-Line.
+  -i     : read text from standard in. Ignores command line text (No interactive shell).
+  -c     : copy translated command-line text to clipboard. (No interactive shell).
   -d     : Debug mode
   -h : print this help message
 EOF
@@ -38,6 +38,7 @@ lastTrans=""
 
 doTrans() {
   local text="$1"
+  history -s "$1"
   local formality=""
   if [ "$target" = "fr" -a "$formality_setting" = "tu" ] ; then
      formality="-d formality=less"
@@ -58,23 +59,23 @@ EOF
 }
 
 
-while getopts "icek:hdL" opt
+loop=1
+while getopts "icek:hd" opt
 do
     case $opt in
         k) key="$OPTARG" ;;
         e) target=fr
            source=en ;;
-        i) stdin=1 ;;
-        c) docopy=1 ;;
-        L) loop=1 ;;
+        i) stdin=1
+           loop=0 ;;
+        c) docopy=1
+           loop=0 ;;
         d) debug=1 ;;
         h) usage ;;
     esac
 done
 
 shift $((OPTIND - 1))
-
-[ $# -lt 1 -a $stdin -eq 0 -a $loop -eq 0 ] && usage
 
 if [ $stdin -eq 1 ] ; then
    text="$(< /dev/stdin)"
@@ -134,8 +135,7 @@ if [ $loop -eq 1 ] ; then
                 echo copied. ;;
             .q) break ;;
             "") ;;
-            *) history -s "$txt"
-               doTrans "$txt" ;;
+            *) doTrans "$txt" ;;
         esac
     done
     history -w "$HISTFILE"
