@@ -64,3 +64,17 @@ eng> How are you doing ?
 eng>
 ```
 Note on the mac only it support copy / paste to the clipboard.
+
+## xid
+
+This is a role-your-own sudo.
+Build:
+```bash
+$ gcc -o xid xid.c
+$ sudo chown root xid
+$ sudo 6755 xid
+```
+Then it can be used just like sudo.
+And yes it is a security nightmare. Use at your own risk.
+
+
